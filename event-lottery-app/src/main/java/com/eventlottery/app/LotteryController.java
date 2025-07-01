@@ -1,32 +1,48 @@
 package com.eventlottery.app;
 
+import com.eventlottery.app.service.LotteryService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.concurrent.ThreadLocalRandom;
 
 @RestController
+@RequestMapping("/api/lottery")
 public class LotteryController {
-    @PostMapping("/lottery")
+    
+    @Autowired
+    private LotteryService lotteryService;
+    
+    @PostMapping("/draw")
     public Map<String, Object> lottery(@RequestBody Map<String, Object> request) {
-        // Mock: genera una lista di eventi finti
-        List<Map<String, Object>> allEvents = new ArrayList<>();
-        for (int i = 1; i <= 5; i++) {
-            Map<String, Object> event = new HashMap<>();
-            event.put("title", "Evento " + i);
-            event.put("description", "Descrizione evento " + i);
-            event.put("location", "Luogo " + i);
-            event.put("dateFrom", LocalDateTime.now().plusDays(i).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            event.put("dateTo", LocalDateTime.now().plusDays(i).plusHours(2).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            allEvents.add(event);
-        }
-        // Scegli un evento casuale
-        Map<String, Object> selectedEvent = allEvents.get(ThreadLocalRandom.current().nextInt(allEvents.size()));
-        Map<String, Object> response = new HashMap<>();
-        response.put("totalEvents", allEvents.size());
-        response.put("selectedEvent", selectedEvent);
-        response.put("allEvents", allEvents);
-        return response;
+        return lotteryService.performLottery(request);
+    }
+    
+    @PostMapping("/lottery")
+    public Map<String, Object> lotteryUi(@RequestBody Map<String, Object> request) {
+        return lotteryService.performLottery(request);
+    }
+    
+    @GetMapping("/events")
+    public Map<String, Object> getAllEvents() {
+        return lotteryService.getAllEvents();
+    }
+    
+    @GetMapping("/events/random")
+    public Map<String, Object> getRandomEvent() {
+        return lotteryService.getRandomEvent();
+    }
+    
+    @PostMapping("/events")
+    public Map<String, Object> createEvent(@RequestBody Map<String, Object> eventRequest) {
+        return lotteryService.createEvent(eventRequest);
+    }
+    
+    @GetMapping("/health")
+    public Map<String, Object> health() {
+        Map<String, Object> health = new HashMap<>();
+        health.put("status", "UP");
+        health.put("service", "Event Lottery Application");
+        health.put("timestamp", new Date());
+        return health;
     }
 } 
