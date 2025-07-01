@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Lottery - Sorteggio Eventi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .location-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            color: #555;
+            font-weight: 600;
+        }
+        
+        input {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+        
+        .result {
+            display: none;
+            margin-top: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .selected-event {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .selected-event h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .event-details {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            color: #555;
+        }
+        
+        .event-detail {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        
+        .event-detail strong {
+            min-width: 100px;
+            color: #333;
+        }
+        
+        .all-events {
+            margin-top: 30px;
+        }
+        
+        .all-events h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .event-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .event-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .event-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            display: none;
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .no-events {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎲 Event Lottery</h1>
+        <p style="text-align: center; color: #666; margin-bottom: 30px;">
+            Inserisci le tue coordinate per scoprire un evento casuale nella tua zona!
+        </p>
+        
+        <div class="location-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="latitude">Latitudine</label>
+                    <input type="number" id="latitude" step="0.000001" placeholder="es. 46.4983" required>
+                </div>
+                <div class="form-group">
+                    <label for="longitude">Longitudine</label>
+                    <input type="number" id="longitude" step="0.000001" placeholder="es. 11.3548" required>
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="radius">Raggio (km)</label>
+                    <input type="number" id="radius" value="20" min="1" max="100">
+                </div>
+                <div class="form-group">
+                    <label for="maxEvents">Numero max eventi</label>
+                    <input type="number" id="maxEvents" value="10" min="1" max="50">
+                </div>
+            </div>
+            
+            <button onclick="getCurrentLocation()" type="button" class="btn-secondary">
+                📍 Usa la mia posizione attuale
+            </button>
+            
+            <button onclick="startLottery()" id="lotteryBtn">
+                🎰 Sorteggia Evento
+            </button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            Caricamento eventi in corso...
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="result" id="result">
+            <div class="selected-event" id="selectedEvent"></div>
+            <div class="all-events" id="allEvents"></div>
+        </div>
+    </div>
+
+    <script>
+        function getCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        document.getElementById('latitude').value = position.coords.latitude.toFixed(6);
+                        document.getElementById('longitude').value = position.coords.longitude.toFixed(6);
+                    },
+                    error => {
+                        showError('Impossibile ottenere la posizione: ' + error.message);
+                    }
+                );
+            } else {
+                showError('Geolocalizzazione non supportata dal browser');
+            }
+        }
+        
+        async function startLottery() {
+            const latitude = document.getElementById('latitude').value;
+            const longitude = document.getElementById('longitude').value;
+            const radius = document.getElementById('radius').value;
+            const maxEvents = document.getElementById('maxEvents').value;
+            
+            if (!latitude || !longitude) {
+                showError('Per favore inserisci latitudine e longitudine');
+                return;
+            }
+            
+            hideError();
+            showLoading(true);
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('lotteryBtn').disabled = true;
+            
+            try {
+                const response = await fetch('/lottery', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        latitude: parseFloat(latitude),
+                        longitude: parseFloat(longitude),
+                        radius: parseInt(radius),
+                        maxEvents: parseInt(maxEvents)
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Errore nella richiesta');
+                }
+                
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                showError('Errore durante il caricamento degli eventi: ' + error.message);
+            } finally {
+                showLoading(false);
+                document.getElementById('lotteryBtn').disabled = false;
+            }
+        }
+        
+        function displayResults(data) {
+            const resultDiv = document.getElementById('result');
+            const selectedEventDiv = document.getElementById('selectedEvent');
+            const allEventsDiv = document.getElementById('allEvents');
+            
+            if (data.totalEvents === 0) {
+                selectedEventDiv.innerHTML = '<div class="no-events">Nessun evento trovato nella zona specificata</div>';
+                allEventsDiv.innerHTML = '';
+            } else {
+                // Display selected event
+                const selected = data.selectedEvent;
+                selectedEventDiv.innerHTML = `
+                    <h2>🎉 Evento Sorteggiato</h2>
+                    <div class="event-details">
+                        <div class="event-detail">
+                            <strong>Titolo:</strong>
+                            <span>${selected.title || 'N/A'}</span>
+                        </div>
+                        <div class="event-detail">
+                            <strong>Descrizione:</strong>
+                            <span>${selected.description || 'N/A'}</span>
+                        </div>
+                        <div class="event-detail">
+                            <strong>Luogo:</strong>
+                            <span>${selected.location || 'N/A'}</span>
+                        </div>
+                        <div class="event-detail">
+                            <strong>Data inizio:</strong>
+                            <span>${formatDate(selected.dateFrom)}</span>
+                        </div>
+                        <div class="event-detail">
+                            <strong>Data fine:</strong>
+                            <span>${formatDate(selected.dateTo)}</span>
+                        </div>
+                    </div>
+                `;
+                
+                // Display all events
+                allEventsDiv.innerHTML = `
+                    <h3>Tutti gli eventi trovati (${data.totalEvents})</h3>
+                    <div class="event-list">
+                        ${data.allEvents.map(event => `
+                            <div class="event-item">
+                                <strong>${event.title || 'Evento senza titolo'}</strong><br>
+                                <small>${event.location || 'Luogo non specificato'} - ${formatDate(event.dateFrom)}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            resultDiv.style.display = 'block';
+        }
+        
+        function formatDate(dateString) {
+            if (!dateString) return 'Data non disponibile';
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('it-IT', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return dateString;
+            }
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+    </script>
+</body>
+</html> 
